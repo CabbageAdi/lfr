@@ -1,25 +1,23 @@
 #define DEBUG true
 
 //sensor
-#include <QTRSensors.h>
-#define sensor_count 8
+#define sensor_count 4
 #define color_threshold 500
-const uint8_t sensor_pins[sensor_count] = {5, 6, 7, 8, 9, 10, 11, 12};
-uint8_t sensor[sensor_count]; //set this to values
+const uint8_t sensor_pins[sensor_count] = {8, 9, 10, 11};
+uint8_t sensor[sensor_count]; //set to actual values
 
-// motor
-// pins
-#define IN1 1
-#define IN2 2
-#define IN3 3
-#define IN4 4
-// variables
-#define max_speed 200 //add more speed variables if necessary
-#define speed_ratio 1 //different speed for motors if imbalanced
+// motor pins
+#define IN1 300
+#define IN2 400
+#define IN3 500
+#define IN4 600
 
 //mapping stuff
 #define direction_priority true // true = left, false = right
-
+int rotation = 0; //0 - forward, 1 - left, 2 - back, 3 - right
+int path[10000]; //same key as rotation
+int fork = -1; //index of fork last ventured
+bool dry_run = true;
 
 //magic for convenience
 #define NUMARGS(...)  (sizeof((int[]){__VA_ARGS__})/sizeof(int))
@@ -41,58 +39,83 @@ void loop() {
   sense();
 
   //straight line
-  if (true) { //middle pins
-    raw_forward(max_speed);
+  if (check(1, 2)) { //going straight
+    raw_forward();
   }
-  if (true) { //middle no left pin
-    raw_left(max_speed);
+  if (check(1) && !check(2)) { //drifting right
+    raw_left();
   }
-  if (true) { //middle no right pin
-    raw_right(max_speed);
+  if (check(2) && !check(1)) { //drifting left
+    raw_right();
   }
 
   //fork
-  //no mapping right now
 
-  //both options
-  if (true) { //all pins + some tolerance idk
+  //all options
+  if (check(0, 1, 2, 3)) {
+    fork++;
     bool forward_option = check_fork();
     if (direction_priority) {
       left_till_line();
+      rotation++;
     }
     else {
       right_till_line();
+      rotation--;
     }
+    path[fork] = rotation % 4;
   }
 
   //left only
-  if (true) { //middle + out left pins
+  else if (check(0, 1)) {
     bool forward_option = check_fork();
-    if (direction_priority && !forward_option) {
+    if (forward_option) {
+      fork++;
+    }
+    if (direction_priority || !forward_option) {
       left_till_line();
+      rotation++;
     }
+    path[fork] = rotation % 4;
   }
+
   //right only
-  if (true) { //middle + out right pins
+  else if (check(2, 3)) { //middle + out right pins
     bool forward_option = check_fork();
-    if (!direction_priority && !forward_option) {
-      right_till_line();
+    if (forward_option) {
+      fork++;
     }
+    if (!direction_priority || !forward_option) {
+      right_till_line();
+      rotation--;
+    }
+    path[fork] = rotation % 4;
+  }
+
+  //dead end
+  if (!check(1, 2, 3, 4)) {
+    left_till_line();
+    rotation += 2;
+    fork--;
   }
 }
 
 void left_till_line() {
-
+  while (!check(1, 2)) {
+    raw_left();
+  }
 }
 
 void right_till_line() {
-
+  while (!check(1, 2)) {
+    raw_right();
+  }
 }
 
 //run when turn
 bool check_fork() {
-  raw_forward(max_speed);
-  delay(100) //tweak this
+  raw_forward();
+  delay(100); //tweak this
   if (true) { //middle sensor therefore straight is option
     return true;
   }
@@ -101,12 +124,13 @@ bool check_fork() {
   }
 }
 
-void Check(int numargs, ...) {
+//:sparkles: magic
+bool Check(int numargs, ...) {
   va_list ap;
 
   va_start(ap, numargs);
-  while (numargs--){
-    i = va_arg(ap, int);
+  while (numargs--) {
+    int i = va_arg(ap, int);
     if (sensor[i] == 0) {
       return false;
     }
@@ -117,42 +141,45 @@ void Check(int numargs, ...) {
 }
 
 //raw movement functions
-void raw_forward(int speed) {
-  analogWrite(IN1, speed);
-  analogWrite(IN2, speed);
-  analogWrite(IN3, speed);
-  analogWrite(IN4, speed);
+void raw_forward() {
+  analogWrite(IN1, HIGH);
+  analogWrite(IN2, HIGH);
+  analogWrite(IN3, HIGH);
+  analogWrite(IN4, HIGH);
 }
-void raw_right(int speed) {
-  analogWrite(IN1, speed);
-  analogWrite(IN2, speed);
-  analogWrite(IN3, speed);
-  analogWrite(IN4, speed);
+void raw_right() {
+  analogWrite(IN1, HIGH);
+  analogWrite(IN2, HIGH);
+  analogWrite(IN3, HIGH);
+  analogWrite(IN4, HIGH);
 }
-void raw_left(int speed) {
-  analogWrite(IN1, speed);
-  analogWrite(IN2, speed);
-  analogWrite(IN3, speed);
-  analogWrite(IN4, speed);
+void raw_left() {
+  analogWrite(IN1, HIGH);
+  analogWrite(IN2, HIGH);
+  analogWrite(IN3, HIGH);
+  analogWrite(IN4, HIGH);
 }
 
 void sense() {
-  // qtr.read(sensor)
   for (int i = 0; i < sensor_count; i++) {
-    uint8_t val = sensor[i];
-    //easier to read
-    if (val >= color_threshold) {
-      sensor[i] = 1;
-    }
-    else {
-      sensor[i] = 0;
-    }
+    int val = analogRead(sensor_pins[i]);
+    sensor[i] = val;
   }
+
+  // for (int i = 0; i < sensor_count; i++) {
+  //   uint8_t val = sensor[i];
+  //   //easier to read
+  //   if (val >= color_threshold) {
+  //     sensor[i] = 1;
+  //   }
+  //   else {
+  //     sensor[i] = 0;
+  //   }
+  // }
 
   #if DEBUG
   for (int i = 0; i < sensor_count; i++) {
     Serial.print(sensor[i]);
-    //Serial.print('\t');
   }
   Serial.println();
   #endif
