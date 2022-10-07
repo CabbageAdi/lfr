@@ -51,52 +51,111 @@ void loop() {
 
   //fork
 
-  //all options
-  if (check(0, 1, 2, 3)) {
-    fork++;
-    bool forward_option = check_fork();
-    if (direction_priority) {
-      left_till_line();
-      rotation++;
-    }
-    else {
-      right_till_line();
-      rotation--;
-    }
-    path[fork] = rotation % 4;
-  }
-
-  //left only
-  else if (check(0, 1)) {
-    bool forward_option = check_fork();
-    if (forward_option) {
+  if (mapping) {
+    //all options
+    if (check(0, 1, 2, 3)) {
       fork++;
+      bool forward_option = check_fork();
+      if (check(0, 1, 2, 3)) { //end of track
+        mapping = false;
+      }
+      else if (direction_priority) {
+        left_till_line();
+        rotation++;
+      }
+      else {
+        right_till_line();
+        rotation--;
+      }
+      path[fork] = rotation % 4;
     }
-    if (direction_priority || !forward_option) {
+
+    //left only
+    else if (check(0, 1)) {
+      bool forward_option = check_fork();
+      if (forward_option) {
+        fork++;
+      }
+      if (direction_priority || !forward_option) {
+        left_till_line();
+        rotation++;
+      }
+      path[fork] = rotation % 4;
+    }
+
+    //right only
+    else if (check(2, 3)) { //middle + out right pins
+      bool forward_option = check_fork();
+      if (forward_option) {
+        fork++;
+      }
+      if (!direction_priority || !forward_option) {
+        right_till_line();
+        rotation--;
+      }
+      path[fork] = rotation % 4;
+    }
+
+    //dead end
+    if (!check(1, 2, 3, 4)) {
       left_till_line();
-      rotation++;
+      rotation += 2;
+      fork--;
     }
-    path[fork] = rotation % 4;
   }
 
-  //right only
-  else if (check(2, 3)) { //middle + out right pins
-    bool forward_option = check_fork();
-    if (forward_option) {
+  else { //mapped
+    //all options
+    if (check(0, 1, 2, 3)) {
       fork++;
+      if (check(0, 1, 2, 3)) { //end of track
+        //end of track, grow led TODO
+      }
+      else if (path[fork] == rotation % 4 + 1) {
+        left_till_line();
+        rotation++;
+      }
+      else if (path[fork] == rotation % 4 - 1) {
+        right_till_line();
+        rotation--;
+      } //else keep going forward
     }
-    if (!direction_priority || !forward_option) {
-      right_till_line();
-      rotation--;
-    }
-    path[fork] = rotation % 4;
-  }
 
-  //dead end
-  if (!check(1, 2, 3, 4)) {
-    left_till_line();
-    rotation += 2;
-    fork--;
+    //left only
+    else if (check(0, 1)) {
+      bool forward_option = check_fork();
+      if (forward_option) {
+        fork++;
+      }
+      if (path[fork] != rotation % 4) {
+        left_till_line();
+        rotation++;
+      }
+      path[fork] = rotation % 4;
+    }
+
+    //right only
+    else if (check(2, 3)) { //middle + out right pins
+      bool forward_option = check_fork();
+      if (forward_option) {
+        fork++;
+      }
+      if (path[fork] != rotation % 4) {
+        right_till_line();
+        rotation--;
+      }
+      path[fork] = rotation % 4;
+    }
+
+    //dead end
+    if (!check(1, 2, 3, 4)) {
+      left_till_line();
+      rotation += 2;
+      fork--;
+
+      //something went wrong, glow led to indicate error
+    }
+    
   }
 }
 
