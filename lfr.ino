@@ -2,15 +2,14 @@
 
 //sensor
 #define sensor_count 4
-#define color_threshold 500
 const uint8_t sensor_pins[sensor_count] = {8, 9, 10, 11};
 uint8_t sensor[sensor_count]; //set to actual values
 
 // motor pins
-#define IN1 300
-#define IN2 400
-#define IN3 500
-#define IN4 600
+#define IN1 3
+#define IN2 4
+#define IN3 5
+#define IN4 6
 
 //mapping stuff
 #define direction_priority true // true = left, false = right
@@ -37,6 +36,7 @@ void setup() {
 
 void loop() {
   sense();
+  return;
 
   //straight line
   if (check(1, 2)) { //going straight
@@ -162,25 +162,16 @@ void raw_left() {
 
 void sense() {
   for (int i = 0; i < sensor_count; i++) {
-    int val = analogRead(sensor_pins[i]);
+    int val = digitalRead(sensor_pins[i]);
     sensor[i] = val;
   }
-
-  // for (int i = 0; i < sensor_count; i++) {
-  //   uint8_t val = sensor[i];
-  //   //easier to read
-  //   if (val >= color_threshold) {
-  //     sensor[i] = 1;
-  //   }
-  //   else {
-  //     sensor[i] = 0;
-  //   }
-  // }
 
   #if DEBUG
   for (int i = 0; i < sensor_count; i++) {
     Serial.print(sensor[i]);
+    Serial.print(" ");
   }
   Serial.println();
+  delay(250);
   #endif
 }
