@@ -14,9 +14,11 @@ uint8_t sensor[sensor_count]; //set to actual values
 //mapping stuff
 #define direction_priority true // true = left, false = right
 int rotation = 0; //0 - forward, 1 - left, 2 - back, 3 - right
-int path[10000]; //same key as rotation
+int path[100] = { -1 }; //same key as rotation
 int fork = -1; //index of fork last ventured
 bool dry_run = true;
+
+#define LED_PIN 10
 
 //magic for convenience
 #define NUMARGS(...)  (sizeof((int[]){__VA_ARGS__})/sizeof(int))
@@ -36,7 +38,6 @@ void setup() {
 
 void loop() {
   sense();
-  return;
 
   //straight line
   if (check(1, 2)) { //going straight
@@ -51,13 +52,13 @@ void loop() {
 
   //fork
 
-  if (mapping) {
+  if (dry_run) {
     //all options
     if (check(0, 1, 2, 3)) {
       fork++;
       bool forward_option = check_fork();
       if (check(0, 1, 2, 3)) { //end of track
-        mapping = false;
+        dry_run = false;
       }
       else if (direction_priority) {
         left_till_line();
@@ -84,7 +85,7 @@ void loop() {
     }
 
     //right only
-    else if (check(2, 3)) { //middle + out right pins
+    else if (check(2, 3)) {
       bool forward_option = check_fork();
       if (forward_option) {
         fork++;
@@ -108,8 +109,8 @@ void loop() {
     //all options
     if (check(0, 1, 2, 3)) {
       fork++;
-      if (check(0, 1, 2, 3)) { //end of track
-        //end of track, grow led TODO
+      if (path[fork] == -1) { //end of track
+        digitalWrite(LED_PIN, HIGH);
       }
       else if (path[fork] == rotation % 4 + 1) {
         left_till_line();
@@ -131,7 +132,6 @@ void loop() {
         left_till_line();
         rotation++;
       }
-      path[fork] = rotation % 4;
     }
 
     //right only
@@ -144,7 +144,6 @@ void loop() {
         right_till_line();
         rotation--;
       }
-      path[fork] = rotation % 4;
     }
 
     //dead end
@@ -154,6 +153,7 @@ void loop() {
       fork--;
 
       //something went wrong, glow led to indicate error
+      digitalWrite(LED_PIN, HIGH);
     }
     
   }
@@ -175,12 +175,7 @@ void right_till_line() {
 bool check_fork() {
   raw_forward();
   delay(100); //tweak this
-  if (true) { //middle sensor therefore straight is option
-    return true;
-  }
-  else {
-    return false;
-  }
+  return check(1, 2); //middle sensor therefore straight is option
 }
 
 //:sparkles: magic
