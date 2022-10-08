@@ -59,6 +59,11 @@ void loop() {
       bool forward_option = check_fork();
       if (check(0, 1, 2, 3)) { //end of track
         dry_run = false;
+        rotation = 0;
+        fork = -1;
+        digitalWrite(LED_PIN, HIGH);
+        delay(5000);
+        digitalWrite(LED_PIN, LOW);
       }
       else if (direction_priority) {
         left_till_line();
@@ -155,7 +160,6 @@ void loop() {
       //something went wrong, glow led to indicate error
       digitalWrite(LED_PIN, HIGH);
     }
-    
   }
 }
 
@@ -197,21 +201,21 @@ bool Check(int numargs, ...) {
 //raw movement functions
 void raw_forward() {
   analogWrite(IN1, HIGH);
-  analogWrite(IN2, HIGH);
+  analogWrite(IN2, LOW);
   analogWrite(IN3, HIGH);
-  analogWrite(IN4, HIGH);
+  analogWrite(IN4, LOW);
 }
 void raw_right() {
   analogWrite(IN1, HIGH);
-  analogWrite(IN2, HIGH);
-  analogWrite(IN3, HIGH);
+  analogWrite(IN2, LOW);
+  analogWrite(IN3, LOW);
   analogWrite(IN4, HIGH);
 }
 void raw_left() {
-  analogWrite(IN1, HIGH);
+  analogWrite(IN1, LOW);
   analogWrite(IN2, HIGH);
   analogWrite(IN3, HIGH);
-  analogWrite(IN4, HIGH);
+  analogWrite(IN4, LOW);
 }
 
 void sense() {
@@ -226,6 +230,5 @@ void sense() {
     Serial.print(" ");
   }
   Serial.println();
-  delay(250);
   #endif
 }
